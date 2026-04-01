@@ -80,3 +80,5 @@ python -m pytest tests/ -v
 ### Confidence level
 
 ⭐⭐⭐⭐⭐ - The core scheduling logic, recurring task system, filtering, sorting, and conflict detection are all covered by dedicated tests including edge cases (empty schedules, future-dated tasks, multiple simultaneous conflicts). The one area not covered by automated tests is the Streamlit UI layer, which requires manual testing in the browser.
+
+<a href="Working_App.png" target="_blank"><img src='Working_App.png' title='PawPal App' width='' alt='PawPal App' class='center-block' /></a>

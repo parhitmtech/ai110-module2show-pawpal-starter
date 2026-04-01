@@ -27,14 +27,14 @@ class TestTask:
         """Calling mark_complete() should set completed to True."""
         task = Task(title="Walk", duration_minutes=30)
         assert task.completed is False
-        task.mark_complete()
+        task.mark_completed()
         assert task.completed is True
 
     def test_mark_complete_is_idempotent(self):
         """Calling mark_complete() twice should not raise and status stays True."""
         task = Task(title="Walk", duration_minutes=30)
-        task.mark_complete()
-        task.mark_complete()
+        task.mark_completed()
+        task.mark_completed()
         assert task.completed is True
 
     def test_mark_incomplete_resets_status(self):
@@ -51,7 +51,7 @@ class TestTask:
     def test_task_str_completed_shows_checkmark(self):
         """Completed tasks should show ✓ in their string representation."""
         task = Task(title="Walk", duration_minutes=10)
-        task.mark_complete()
+        task.mark_completed()
         assert "✓" in str(task)
 
     def test_task_with_notes(self):
@@ -115,7 +115,7 @@ class TestPet:
         """get_completed_tasks() should only return completed tasks."""
         pet  = Pet(name="Mochi", species="dog", age=3)
         done = Task(title="Walk", duration_minutes=30)
-        done.mark_complete()
+        done.mark_completed()
         todo = Task(title="Feeding", duration_minutes=10)
         pet.add_task(done)
         pet.add_task(todo)
@@ -411,14 +411,14 @@ class TestFiltering:
         """filter_tasks(completed=False) should return only incomplete tasks."""
         owner = self._make_owner()
         # Mark one task complete
-        owner.get_pets()[0].get_tasks()[0].mark_complete()
+        owner.get_pets()[0].get_tasks()[0].mark_completed()
         results = owner.filter_tasks(completed=False)
         assert all(not task.completed for _, task in results)
 
     def test_filter_by_completed_true_returns_done_only(self):
         """filter_tasks(completed=True) should return only completed tasks."""
         owner = self._make_owner()
-        owner.get_pets()[0].get_tasks()[0].mark_complete()
+        owner.get_pets()[0].get_tasks()[0].mark_completed()
         results = owner.filter_tasks(completed=True)
         assert all(task.completed for _, task in results)
         assert len(results) == 1
@@ -451,26 +451,26 @@ class TestRecurrence:
         """Marking a daily task complete should set due_date to today + 1."""
         task = Task(title="Walk", duration_minutes=20,
                     frequency="daily", due_date=date.today())
-        task.mark_complete()
+        task.mark_completed()
         assert task.due_date == date.today() + timedelta(days=1)
 
     def test_weekly_task_rolls_due_date_forward_seven_days(self):
         """Marking a weekly task complete should set due_date to today + 7."""
         task = Task(title="Bath", duration_minutes=25,
                     frequency="weekly", due_date=date.today())
-        task.mark_complete()
+        task.mark_completed()
         assert task.due_date == date.today() + timedelta(days=7)
 
     def test_daily_task_resets_to_pending_after_complete(self):
         """A daily task should be pending again after mark_complete()."""
         task = Task(title="Walk", duration_minutes=20, frequency="daily")
-        task.mark_complete()
+        task.mark_completed()
         assert task.completed is False
 
     def test_weekly_task_resets_to_pending_after_complete(self):
         """A weekly task should be pending again after mark_complete()."""
         task = Task(title="Bath", duration_minutes=25, frequency="weekly")
-        task.mark_complete()
+        task.mark_completed()
         assert task.completed is False
 
     def test_once_task_stays_completed_no_rollover(self):
@@ -478,7 +478,7 @@ class TestRecurrence:
         original_due = date.today()
         task = Task(title="Vet checkup", duration_minutes=60,
                     frequency="once", due_date=original_due)
-        task.mark_complete()
+        task.mark_completed()
         assert task.completed  is True
         assert task.due_date   == original_due
 
@@ -486,8 +486,8 @@ class TestRecurrence:
         """Marking a daily task complete twice should roll the date forward twice."""
         task = Task(title="Walk", duration_minutes=20,
                     frequency="daily", due_date=date.today())
-        task.mark_complete()
-        task.mark_complete()
+        task.mark_completed()
+        task.mark_completed()
         assert task.due_date == date.today() + timedelta(days=2)
 
     def test_is_due_today_returns_true_for_today(self):

@@ -41,6 +41,10 @@ class Task:
         """Reset this task to incomplete (useful for a new day)"""
         self.completed = False
 
+    def is_due_today(self) -> bool:    
+        """Check if task is due today or not"""               
+        return self.due_date <= date.today()
+
     def __str__(self) -> str:
         status = "✓" if self.completed else "○"
         note = f"  ({self.notes})" if self.notes else ""
@@ -127,7 +131,7 @@ class Owner:
         return [
             (pet, task)
             for pet, task in self.get_all_tasks()
-            if not task.completed
+            if not task.completed and task.is_due_today()
         ]
     
     def total_task_minutes(self) -> int:

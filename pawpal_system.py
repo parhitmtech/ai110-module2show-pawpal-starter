@@ -5,6 +5,7 @@
 """
 
 from dataclasses import dataclass, field
+from datetime import date, timedelta
 from typing import List, Optional
 
 # Priority Helpers
@@ -22,10 +23,19 @@ class Task:
     priority: str = "medium"
     completed: bool = False
     notes: Optional[str] = None
+    frequency: str = "once"
+    due_date: date = field(default_factory=date.today)
 
     def mark_completed(self) -> None:
         """Mark this task as completed"""
         self.completed = True
+        if (self.frequency == "daily"):
+            self.due_date = self.due_date + timedelta(days=1)
+            self.completed = False  # reset so it appears tomorrow
+        
+        elif (self.frequency == "weekly"):
+            self.due_date = self.due_date + timedelta(days=7)
+            self.completed = False  # reset so it appears next week
     
     def mark_incomplete(self) -> None:
         """Reset this task to incomplete (useful for a new day)"""
@@ -124,6 +134,29 @@ class Owner:
         """Return total minutes of all tasks across all parts"""
         return sum(pet.total_task_minutes() for pet in self.pets)
     
+    def filter_tasks(
+            self,
+            pet_name: Optional[str] = None,
+            completed: Optional[bool] = None,
+            priority: Optional[str] = None,
+            frequency: Optional[str] = None,
+    ) -> List[tuple]:
+        results = self.get_all_tasks()
+
+        if (pet_name is not None):
+            results = [(p, t) for p, t in results if p.name == pet_name]
+
+        if (completed is not None):
+            results = [(p, t) for p, t in results if t.completed == completed]
+
+        if (priority is not None):
+            results = [(p, t) for p, t in results if t.priority == priority]
+
+        if (frequency is not None):
+            results = [(p, t) for p, t in results if t.frequency == frequency]
+
+        return results
+        
     def __str__(self) -> str:
         """Return a readable one-line summary of the owner."""
         return (
@@ -219,28 +252,40 @@ class Scheduler:
                 ))
  
         return self.schedule
+    
+    def sort_by_time(self) -> List[ScheduledItem]:
+        return sorted(self.schedule, key=lambda item: item.start_time)
+    
+    def detect_conflicts(self) -> List[str]:
+        warnings = []
+        items = self.schedule
+
+        for i in range(len(items)):
+            for j in range(i+1, len(items)):
+                a, b = items[i], items[j]
+                # Overlap condition: a starts before b ends AND b starts before a ends
+                if (a.start_time < b.end_time and b.start_time < a.end_time):
+                    warnings.append(
+                        f"Conflict: '{a.task.title}' for {a.pet.name} "
+                        f"({a.start_time_str()} → {a.end_time_str()}) overlaps with "
+                        f"'{b.task.title}' for {b.pet.name} "
+                        f"({b.start_time_str()} → {b.end_time_str()})"
+                    )
+        return warnings
 
     def explain_plan(self) -> List[str]:
-        """
-        Return a list of human-readable strings explaining the schedule
-        Each string describes why a task was included or skipped
-        """
+        """Return a list of human-readable strings explaining the full schedule."""
         if not self.schedule and not self.skipped:
             return ["No tasks found. Add some tasks to get started!"]
  
         lines = []
- 
-        # Header
-        lines.append(
-            f"Daily Schedule for {self.owner.name}'s pets "
-            f"({self.owner.available_minutes} min available)"
-        )
+        lines.append(f"Daily Schedule for {self.owner.name}'s pets "
+                     f"({self.owner.available_minutes} min available)")
         lines.append("─" * 55)
  
-        # Scheduled tasks
         if self.schedule:
             lines.append("Scheduled tasks:")
-            for item in self.schedule:
+            for item in self.sort_by_time():
                 lines.append(f"   {item}")
                 if item.task.notes:
                     lines.append(f"      Note: {item.task.notes}")
@@ -250,18 +295,21 @@ class Scheduler:
         else:
             lines.append("   No tasks could be scheduled.")
  
-        # Skipped tasks
         if self.skipped:
             lines.append("\nSkipped tasks:")
             for pet, task, reason in self.skipped:
-                lines.append(
-                    f"   {task.title} for {pet.name} "
-                    f"({task.duration_minutes} min) — {reason}"
-                )
+                lines.append(f"   {task.title} for {pet.name} "
+                             f"({task.duration_minutes} min) — {reason}")
+ 
+        conflicts = self.detect_conflicts()
+        if conflicts:
+            lines.append("\nConflicts detected:")
+            for w in conflicts:
+                lines.append(f"   {w}")
  
         lines.append("─" * 55)
         return lines
-
+    
     def mark_all_complete(self) -> None:
         """Mark every scheduled task as completed"""
         for item in self.schedule:
